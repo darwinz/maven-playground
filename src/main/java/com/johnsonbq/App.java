@@ -1,13 +1,30 @@
 package com.johnsonbq;
 
-/**
- * Hello world!
- *
- */
+import java.nio.file.*;
+import org.apache.tika.Tika;
+
 public class App 
 {
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
+    private static final String FILE_TYPE = "text/csv";
+    private static final String DIR_TO_WATCH = "/Users/brandon/Downloads/tmp";
+
+    public static void main(String[] args) throws Exception {
+       Path dir = Paths.get(DIR_TO_WATCH);
+       Tika tika = new Tika();
+       WatchService watchService = FileSystems.getDefault().newWatchService();
+       dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+
+       WatchKey key;
+       do {
+         key = watchService.take();
+
+         key.pollEvents().stream().filter(e -> {
+           Path filename = (Path)e.context();
+           String type = tika.detect(filename.toString());
+           return FILE_TYPE.equals(type);
+         }).forEach(e ->
+           System.out.printf("File found: %s%n", e.context())
+         );
+       } while (key.reset());
     }
 }
